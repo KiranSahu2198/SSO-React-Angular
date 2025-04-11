@@ -20,8 +20,9 @@ function App() {
     const fakeToken = 'react-generated-token-' + Math.random().toString(36).substring(2);
     setToken(fakeToken);
     
-    // Set cookie accessible by Angular app on the same domain
-    Cookies.set('auth_token', fakeToken, {
+    // Set cookie accessible by Angular app on the same domain     
+    // replace JSON.stringify(authObject) for Auth Object{} insted fakeToken
+    Cookies.set('auth_token', fakeToken, { 
       expires: 1, // 1 day
       path: '/',
       domain: window.location.hostname,
@@ -116,3 +117,50 @@ export class AppComponent implements OnInit {
 
 # 3. Run Both Applications
 
+# 4. Accessing Cookie Data in Angular's app.config.ts
+
+1. First, create a utility function to read cookies directly 
+
+// src/app/utils/cookie-reader.util.ts
+
+export function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null; // For SSR compatibility
+
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
+export function getAuthDataFromCookie(): { token?: string } | null {
+  const authCookie = getCookie('auth_data');
+  if (!authCookie) return null;
+
+  try {
+    return JSON.parse(authCookie);
+  } catch {
+    return null;
+  }
+}
+
+2. Use in app.config.ts
+
+// src/app/app.config.ts
+import { getAuthDataFromCookie } from './utils/cookie-reader.util';
+
+// Get auth data from cookies during 
+const authData = getAuthDataFromCookie();
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideAuth0({
+      domain: `${authData?.domain}`,
+      clientId: `${authData?.clientID}`,
+      authorizationParams: {
+        redirect_uri: window.location.origin
+      }
+    }),
+  ]
+};
