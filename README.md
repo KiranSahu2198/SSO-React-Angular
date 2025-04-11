@@ -1,5 +1,151 @@
 # SSO integration between React and Angular by using Cookies 
 
+# Auth0 Setup
+
+Log in to your Auth0 Dashboard (https://manage.auth0.com/)
+Create a new Application:
+
+# Part 1: Auth0 Setup
+- Log in to your Auth0 Dashboard (https://manage.auth0.com/)
+- Create a new Application:
+- Go to "Applications" > Click "Create Application" > Name it "SSO Demo" > Choose "Single Page Applications" (for Angular) > Click "Create"
+
+- Configure Application Settings:
+
+Allowed Callback URLs:
+  http://localhost:4200/callback
+  http://localhost:3000/callback
+
+Allowed Logout URLs:
+  http://localhost:4200
+  http://localhost:3000
+
+Allowed Web Origins:
+  http://localhost:4200
+  http://localhost:3000
+
+# Note down these values from your Auth0 application:
+
+-  Domain (e.g., your-tenant.auth0.com)
+-  Client ID
+
+
+# Part 2: Angular Application Setup
+
+1. Create Angular App
+
+ng new angular-sso-app --routing --style=css
+cd angular-sso-app
+
+2. Install Auth0 Angular SDK
+
+npm install @auth0/auth0-angular
+
+3. Configure Auth0 Module
+Edit src/app/app.module.ts:
+
+import { AuthModule } from '@auth0/auth0-angular';
+
+@NgModule({
+  imports: [
+    // other imports...
+    AuthModule.forRoot({
+      domain: 'your-tenant.auth0.com',
+      clientId: 'your-client-id',
+      authorizationParams: {
+        redirect_uri: window.location.origin,
+        audience: 'https://your-tenant.auth0.com/api/v2/',
+        scope: 'openid profile email',
+      },
+      useRefreshTokens: true,
+    }),
+  ],
+})
+export class AppModule {}
+
+4. Implement Login/Logout in Component
+
+// src/app/app.component.ts
+import { Component } from '@angular/core';
+import { AuthService } from '@auth0/auth0-angular';
+
+@Component({
+  selector: 'app-root',
+  template: `
+    <button (click)="auth.loginWithRedirect()" *ngIf="!(auth.isAuthenticated$ | async)">Log in</button>
+    <button (click)="auth.logout()" *ngIf="auth.isAuthenticated$ | async">Log out</button>
+    <div *ngIf="auth.isAuthenticated$ | async">
+      <p>Welcome to Angular App!</p>
+      <pre>{{ auth.user$ | async | json }}</pre>
+    </div>
+  `
+})
+export class AppComponent {
+  constructor(public auth: AuthService) {}
+}
+
+5. Run Angular App
+
+# Part 3: React Application Setup
+
+1. Create React App and Install Auth0 React SDK
+npm install @auth0/auth0-react
+
+2. Configure Auth0 Provider
+
+Edit src/index.js:
+
+import { Auth0Provider } from '@auth0/auth0-react';
+import App from './App';
+
+ReactDOM.render(
+  <Auth0Provider
+    domain="your-tenant.auth0.com"
+    clientId="your-client-id"
+    authorizationParams={{
+      redirect_uri: window.location.origin,
+      audience: 'https://your-tenant.auth0.com/api/v2/',
+      scope: 'openid profile email',
+    }}
+    useRefreshTokens={true}
+  >
+    <App />
+  </Auth0Provider>,
+  document.getElementById('root')
+);
+
+3. Implement Login/Logout in Component
+
+// src/App.js
+
+import { useAuth0 } from '@auth0/auth0-react';
+
+function App() {
+  const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
+
+  return (
+    <div>
+      <button onClick={() => loginWithRedirect()} disabled={isAuthenticated}>
+        Log in
+      </button>
+      <button onClick={() => logout()} disabled={!isAuthenticated}>
+        Log out
+      </button>
+      {isAuthenticated && (
+        <div>
+          <p>Welcome to React App!</p>
+          <pre>{JSON.stringify(user, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+export default App;
+
+4. Run React App
+
+
+
 # Transferring Tokens Between React and Angular Apps Using Cookies
 
 # 1. Setup the React Application
